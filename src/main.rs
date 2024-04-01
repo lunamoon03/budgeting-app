@@ -1,14 +1,44 @@
 use std::{error::Error, fmt};
 use std::fmt::Formatter;
-use chrono::{DateTime, Local};
+use chrono::{Local, NaiveDate};
+use sorted_list::SortedList;
 
-fn main() {}
+fn main() {
+}
 
 
+struct Account {
+    name: String,
+    balance: i32,
+    transactions: SortedList<NaiveDate, Transaction>,
+}
+
+impl Account {
+    pub fn new(name: &str) -> Account {
+        Account {
+            name: String::from(name),
+            balance: 0,
+            transactions: SortedList::new(),
+        }
+    }
+
+    pub fn add_transaction(&mut self, t: Transaction) {
+        self.balance += t.amount;
+        self.transactions.insert(t.time, t);
+    }
+}
+
+impl fmt::Display for Account {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+#[derive(PartialEq)]
 struct Transaction {
     label: String,
     amount: i32,
-    time: DateTime<Local>,
+    time: NaiveDate,
 }
 
 impl Transaction {
@@ -19,8 +49,22 @@ impl Transaction {
         Ok(Transaction {
             label: String::from(label),
             amount,
-            time: Local::now(),
+            time: NaiveDate::from(Local::now().naive_local()),
         })
+    }
+
+    pub fn edit_name(&mut self, new: &str) {
+        self.label = String::from(new);
+    }
+
+    pub fn edit_amount(&mut self, new: i32) {
+        self.amount = new;
+    }
+}
+
+impl fmt::Display for Transaction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
     }
 }
 
@@ -40,7 +84,7 @@ impl TransactionCreationError {
 impl Error for TransactionCreationError {}
 
 impl fmt::Display for TransactionCreationError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.reason)
     }
 }
