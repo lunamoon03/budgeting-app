@@ -12,7 +12,7 @@ pub struct Account<'a> {
     transactions: SortedList<NaiveDate, Transaction<'a>>,
 }
 
-impl Account<'_> {
+impl<'a> Account<'a> {
     pub fn new(name: &str) -> Account {
         Account {
             name: String::from(name),
@@ -21,16 +21,16 @@ impl Account<'_> {
         }
     }
 
-    /*pub fn add_transaction(&mut self, label: &str, amount: Decimal)
+    pub fn add_transaction(&'a mut self, label: &'a str, amount: Decimal)
                            -> Result<(), TransactionCreationError> {
         let now = NaiveDate::from(Local::now().naive_local());
         //self.balance += amount;
         self.transactions.insert(
             now,
-            Transaction::new(label.clone(), amount, now)?
+            Transaction::new(label, amount, now)?
         );
         Ok(())
-    }*/
+    }
 }
 
 impl fmt::Display for Account<'_> {
