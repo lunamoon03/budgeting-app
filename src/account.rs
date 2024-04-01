@@ -14,7 +14,7 @@ impl Account {
     pub fn new(name: &str) -> Account {
         Account {
             name: String::from(name),
-            balance: 0f32,
+            balance: 0.0,
             transactions: SortedList::new(),
         }
     }
@@ -33,7 +33,7 @@ impl Account {
 
 impl fmt::Display for Account {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Name: {} | Balance: {}\nTransactions:\n{}",
+        write!(f, "Name: {} | Balance: ${:?}\nTransactions:\n{}",
             self.name,
             self.balance,
             self.transactions.values().join("\n"),
@@ -94,5 +94,48 @@ impl Error for TransactionCreationError {}
 impl fmt::Display for TransactionCreationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.reason)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::{Local, NaiveDate};
+    use crate::account::Account;
+    #[test]
+    fn balance_increasing() {
+        let mut a = Account::new("");
+        let mut sum: f32 = 0.0;
+        for i in 0..100 {
+            a.add_transaction(&format!("{i}"), i as f32).unwrap();
+            sum += i as f32;
+        }
+        assert_eq!(a.balance, sum);
+    }
+
+    #[test]
+    fn balance_decreasing() {
+        let mut a = Account::new("");
+        a.add_transaction("x", 100.0).unwrap();
+        assert_eq!(a.balance, 100.0);
+        a.add_transaction("y", -50.0).unwrap();
+        assert_eq!(a.balance, 50.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn transaction_add_error() {
+        let mut a = Account::new("");
+        a.add_transaction("", 15.0).unwrap();
+    }
+
+    #[test]
+    fn account_printing() {
+        let mut a = Account::new("Savings");
+        a.add_transaction("Transaction", 10.0).unwrap();
+        assert_eq!(&format!("{}", a),
+                   &format!("Name: Savings | Balance: $10.0\n\
+                   Transactions:\n\
+                   Date: {:?} | Label: Transaction | Amount: $10.0",
+                            NaiveDate::from(Local::now().naive_local())));
     }
 }
