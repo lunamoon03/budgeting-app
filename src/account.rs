@@ -1,8 +1,8 @@
 use std::{error::Error, fmt};
 use std::fmt::Formatter;
-use std::path::Display;
 use chrono::{Local, NaiveDate};
 use sorted_list::SortedList;
+use itertools::Itertools;
 
 pub struct Account {
     name: String,
@@ -33,7 +33,11 @@ impl Account {
 
 impl fmt::Display for Account {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-       todo!()
+        write!(f, "Name: {} | Balance: {}\nTransactions:\n{}",
+            self.name,
+            self.balance,
+            self.transactions.values().join("\n"),
+        )
     }
 }
 
@@ -57,11 +61,11 @@ impl Transaction {
         })
     }
 
-    pub fn edit_name(&mut self, new: &str) {
+    pub fn _edit_name(&mut self, new: &str) {
         self.label = String::from(new);
     }
 
-    pub fn edit_amount(&mut self, new: f32) {
+    pub fn _edit_amount(&mut self, new: f32) {
         self.amount = new;
     }
 }
@@ -73,7 +77,7 @@ impl fmt::Display for Transaction {
 }
 
 #[derive(Debug)]
-struct TransactionCreationError {
+pub struct TransactionCreationError {
     reason: String,
 }
 

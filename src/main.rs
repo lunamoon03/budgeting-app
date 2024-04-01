@@ -4,7 +4,13 @@ mod account;
 
 fn main() {
     let mut a = Account::new("test");
-    a.add_transaction("", 15f32).unwrap_or_else(|error| {
-        println!("{}", error);
-    });
+
+    for i in 0..20 {
+        a.add_transaction(&format!("Transaction {}", i), i as f32).unwrap_or_else(|error| {
+            println!("{}", error);
+        });
+    }
+
+    println!("{}",a);
+
 }
