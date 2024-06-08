@@ -11,7 +11,7 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn new(name: &str) -> Account {
+    pub fn _new(name: &str) -> Account {
         Account {
             name: String::from(name),
             balance: 0.0,
@@ -19,7 +19,7 @@ impl Account {
         }
     }
 
-    pub fn add_transaction(&mut self, label: &str, amount: f32)
+    pub fn _add_transaction(&mut self, label: &str, amount: f32)
     -> Result<(), TransactionCreationError>{
         let now = NaiveDate::from(Local::now().naive_local());
         self.balance += amount;
