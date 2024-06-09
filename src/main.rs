@@ -1,11 +1,10 @@
-mod account;
 use std::env;
 use std::process::exit;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let file_path = match budgeting_app::parse_file_path(&args) {
+    let file_path = match budgeting_app::parse_args(&args) {
         Ok(file_path) => file_path,
         Err(e) => {
             println!("{}",e);
