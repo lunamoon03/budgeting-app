@@ -1,6 +1,9 @@
 use std::error::Error;
+use std::fs;
 use std::fs::File;
 use std::io::Read;
+use std::str::FromStr;
+use chrono::NaiveDate;
 use crate::account::Account;
 
 mod account;
@@ -45,7 +48,7 @@ fn process_file(contents: String) -> Result<Vec<Account>, Box<dyn Error>> {
 
     let split: Vec<&str> = contents.split(",").collect();
 
-    if !split.get(0).unwrap().ends_with("{") || split.len() % 2 != 0 {
+    if !split.get(0).unwrap().ends_with("{") || split.len()<2 {
         return Err(Box::from("Malformed File"));
     }
 
@@ -84,9 +87,20 @@ fn process_account(split: &Vec<&str>, mut iter: usize) -> Result<(Account,usize)
             _ => break
         };
 
+        iter += 1;
+
+        let transaction_date: NaiveDate = match split.get(iter) {
+            Some(slice) => match NaiveDate::from_str(slice) {
+                Ok(val) => val,
+                _ => return Err(Box::from(format!("Date {} not valid", slice)))
+            },
+            _ => break
+        };
+
         iter += 1; // next token (should be "}")
 
-        if let Err(e) = account.add_transaction(transaction_name, transaction_amount) {
+        if let Err(e) = account.add_transaction(
+            transaction_name, transaction_amount, transaction_date) {
             return Err(Box::from(e))
         }
     }
@@ -96,6 +110,27 @@ fn process_account(split: &Vec<&str>, mut iter: usize) -> Result<(Account,usize)
 
     iter += 1;
     Ok((account, iter))
+}
+
+
+fn write_to_file(file_path: &str, accounts: Vec<Account>) -> Result<(), Box<dyn Error>> {
+    let mut buf: Vec<String> = Vec::new();
+    for account in accounts.iter() {
+        buf.push(format!("{}{{",account.name()));
+
+        for (_,transaction) in account.transactions().iter() {
+            buf.push(format!("{}", transaction.amount()));
+            buf.push(format!("{}", transaction.label()));
+            buf.push(format!("{}", transaction.date()));
+        }
+        buf.push(String::from("}"));
+    }
+
+    if let Err(e) = fs::write(file_path, buf.join(",")) {
+        return Err(Box::from(format!("Failed writing to {}:\n{}",file_path,e)))
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -131,24 +166,59 @@ mod tests {
     fn one_account() {
         let a = get_file_contents("src/test-files/1-account.csv").unwrap();
         assert_eq!(&format!("{}", process_file(a).unwrap().get(0).unwrap()),
-                   &format!("Name: Savings | Balance: $1.0\n\
+                   "Name: Savings | Balance: $1.0\n\
                    Transactions:\n\
-                   Date: {:?} | Label: a | Amount: $1.0",
-                            NaiveDate::from(Local::now().naive_local())));
+                   Date: 2024-06-10 | Label: a | Amount: $1.0");
     }
 
     #[test]
     fn two_accounts() {
         let b = process_file(get_file_contents("src/test-files/2-account.csv").unwrap()).unwrap();
         assert_eq!(&format!("{}", b.get(0).unwrap()),
-                   &format!("Name: Savings | Balance: $1.0\n\
+                   "Name: Savings | Balance: $1.0\n\
                    Transactions:\n\
-                   Date: {:?} | Label: a | Amount: $1.0",
-                            NaiveDate::from(Local::now().naive_local())));
+                   Date: 2024-06-10 | Label: a | Amount: $1.0");
         assert_eq!(&format!("{}", b.get(1).unwrap()),
-                   &format!("Name: Expenses | Balance: $3.0\n\
+                   "Name: Expenses | Balance: $3.0\n\
                    Transactions:\n\
-                   Date: {:?} | Label: c | Amount: $3.0",
-                            NaiveDate::from(Local::now().naive_local())));
+                   Date: 2024-06-10 | Label: c | Amount: $3.0");
+    }
+
+    fn form_account() -> Account {
+        let mut a = Account::new("Savings");
+        a.add_new_transaction("a", 1.0).unwrap();
+        a.add_new_transaction("b", 2.0).unwrap();
+        a
+    }
+
+    #[test]
+    fn write_test() {
+        let account = form_account();
+
+        let file_path = "src/test-files/write-test";
+
+        write_to_file(file_path, vec!(account)).unwrap();
+
+        let file_contents = get_file_contents(file_path).unwrap();
+
+        let date = NaiveDate::from(Local::now().naive_local());
+
+        assert_eq!(&file_contents,
+                   &format!("Savings{{,1,a,{date},2,b,{date},}}"));
+    }
+
+    #[test]
+    fn write_read_test() {
+        let file_path = "src/test-files/write-read-test";
+
+        write_to_file(file_path, vec!(form_account())).unwrap();
+
+        let file_contents = get_file_contents(file_path).unwrap();
+
+        let binding = process_file(file_contents).unwrap();
+        let account2 = binding.get(0).unwrap();
+
+        assert_eq!(&format!("{}", form_account()),
+                   &format!("{account2}"));
     }
 }
