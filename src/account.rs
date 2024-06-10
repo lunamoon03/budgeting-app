@@ -19,13 +19,31 @@ impl Account {
         }
     }
 
-    pub fn add_transaction(&mut self, label: &str, amount: f32)
-    -> Result<(), TransactionCreationError>{
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn transactions(&self) -> &SortedList<NaiveDate, Transaction> {
+        &self.transactions
+    }
+
+    pub fn add_new_transaction(&mut self, label: &str, amount: f32)
+                               -> Result<(), TransactionCreationError>{
         let now = NaiveDate::from(Local::now().naive_local());
         self.balance += amount;
         self.transactions.insert(
             now,
             Transaction::new(label, amount, now)?
+        );
+        Ok(())
+    }
+
+    pub fn add_transaction(&mut self, label: &str, amount: f32, date: NaiveDate)
+                           -> Result<(), TransactionCreationError>{
+        self.balance += amount;
+        self.transactions.insert(
+            date,
+            Transaction::new(label, amount, date)?
         );
         Ok(())
     }
@@ -42,7 +60,7 @@ impl fmt::Display for Account {
 }
 
 #[derive(PartialEq)]
-struct Transaction {
+pub struct Transaction {
     label: String,
     amount: f32,
     time: NaiveDate,
@@ -59,6 +77,16 @@ impl Transaction {
             amount,
             time: now,
         })
+    }
+
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+    pub fn amount(&self) -> &f32 {
+        &self.amount
+    }
+    pub fn date(&self) -> &NaiveDate {
+        &self.time
     }
 
     pub fn _edit_name(&mut self, new: &str) {
@@ -106,7 +134,7 @@ mod tests {
         let mut a = Account::new("");
         let mut sum: f32 = 0.0;
         for i in 0..100 {
-            a.add_transaction(&format!("{i}"), i as f32).unwrap();
+            a.add_new_transaction(&format!("{i}"), i as f32).unwrap();
             sum += i as f32;
         }
         assert_eq!(a.balance, sum);
@@ -115,9 +143,9 @@ mod tests {
     #[test]
     fn balance_decreasing() {
         let mut a = Account::new("");
-        a.add_transaction("x", 100.0).unwrap();
+        a.add_new_transaction("x", 100.0).unwrap();
         assert_eq!(a.balance, 100.0);
-        a.add_transaction("y", -50.0).unwrap();
+        a.add_new_transaction("y", -50.0).unwrap();
         assert_eq!(a.balance, 50.0);
     }
 
@@ -125,13 +153,13 @@ mod tests {
     #[should_panic]
     fn transaction_add_error() {
         let mut a = Account::new("");
-        a.add_transaction("", 15.0).unwrap();
+        a.add_new_transaction("", 15.0).unwrap();
     }
 
     #[test]
     fn account_printing() {
         let mut a = Account::new("Savings");
-        a.add_transaction("Transaction", 10.0).unwrap();
+        a.add_new_transaction("Transaction", 10.0).unwrap();
         assert_eq!(&format!("{}", a),
                    &format!("Name: Savings | Balance: $10.0\n\
                    Transactions:\n\
