@@ -7,7 +7,7 @@ fn main() {
     let file_path = match budgeting_app::parse_args(&args) {
         Ok(file_path) => file_path,
         Err(e) => {
-            println!("{}",e);
+            println!("{e}");
             exit(-1);
         }
     };
