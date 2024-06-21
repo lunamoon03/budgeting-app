@@ -3,6 +3,7 @@ use std::io;
 
 mod account;
 mod file_processing;
+mod input_processing;
 
 fn print_menu() {
     println!("\n\
@@ -20,7 +21,7 @@ fn print_menu() {
 }
 
 pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
-    let accounts = file_processing::read_from_string(file_processing::get_file_contents(file_path)?)?;
+    let mut accounts = file_processing::read_from_string(file_processing::get_file_contents(file_path)?)?;
 
     for account in accounts.values() {
         println!("{account}\n");
@@ -40,9 +41,13 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
             if !trimmed_input.is_empty() { break; }
         }
 
-        match *trimmed_input.split(" ").collect::<Vec<&str>>().first().unwrap_or(&""){
-            "at" => println!("at"),
-            "atd" => println!("atd"),
+        let split_input = trimmed_input.split(' ').map(String::from).collect::<Vec<String>>();
+
+        let mut result = Ok(());
+
+        match split_input.first().unwrap_or(&"".to_string()).as_str() {
+            "at" => result = input_processing::add_new_transaction(split_input, &mut accounts),
+            "atd" => result = input_processing::add_transaction(split_input, &mut accounts),
             "aa" => println!("aa"),
             "eta" => println!("eta"),
             "etd" => println!("etd"),
@@ -52,6 +57,8 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
             "q" => break,
             _ => println!("Please enter a valid input"),
         }
+
+        if let Err(e) = result { println!("Error: {}", e) }
     }
 
     file_processing::write_to_file(file_path, accounts)?;

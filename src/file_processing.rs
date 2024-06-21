@@ -60,7 +60,7 @@ pub(super) fn read_from_string(contents: String) -> Result<HashMap<String, Accou
     while iter < split.len() {
         (account_holder, iter) = read_account(&split, iter)?;
 
-        accounts.insert(String::from(account_holder.name()), account_holder);
+        accounts.insert(account_holder.name().to_lowercase(), account_holder);
     }
 
     Ok(accounts)
@@ -152,7 +152,7 @@ mod tests {
     fn one_account() {
         let a = get_file_contents("src/test-files/1-account.csv").unwrap();
         assert_eq!(
-            &format!("{}", read_from_string(a).unwrap().get("Savings").unwrap()),
+            &format!("{}", read_from_string(a).unwrap().get("savings").unwrap()),
             "Name: Savings | Balance: $1.00\n\
                    Transactions:\n\
                    Date: 10 Jun 2024 | Label: a | Amount: $1.00"
@@ -163,13 +163,13 @@ mod tests {
     fn two_accounts() {
         let b = read_from_string(get_file_contents("src/test-files/2-account.csv").unwrap()).unwrap();
         assert_eq!(
-            &format!("{}", b.get("Savings").unwrap()),
+            &format!("{}", b.get("savings").unwrap()),
             "Name: Savings | Balance: $1.00\n\
                    Transactions:\n\
                    Date: 10 Jun 2024 | Label: a | Amount: $1.00"
         );
         assert_eq!(
-            &format!("{}", b.get("Expenses").unwrap()),
+            &format!("{}", b.get("expenses").unwrap()),
             "Name: Expenses | Balance: $3.00\n\
                    Transactions:\n\
                    Date: 10 Jun 2024 | Label: c | Amount: $3.00"
@@ -214,7 +214,7 @@ mod tests {
         let file_contents = get_file_contents(file_path).unwrap();
 
         let binding = read_from_string(file_contents).unwrap();
-        let account2 = binding.get("Savings").unwrap();
+        let account2 = binding.get("savings").unwrap();
 
         assert_eq!(&format!("{}", form_account()), &format!("{account2}"));
     }

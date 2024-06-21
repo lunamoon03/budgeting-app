@@ -23,6 +23,10 @@ impl Account {
         &self.name
     }
 
+    pub fn balance(&self) -> &f32 {
+        &self.balance
+    }
+
     pub fn transactions(&self) -> &SortedList<NaiveDate, Transaction> {
         &self.transactions
     }
