@@ -20,7 +20,7 @@ pub(super) fn get_file_contents(file_path: &str) -> Result<String, Box<dyn Error
 
 pub(super) fn write_to_file(
     file_path: &str,
-    accounts: HashMap<String, Account>,
+    accounts: &HashMap<String, Account>,
 ) -> Result<(), Box<dyn Error>> {
     let mut buf: Vec<String> = Vec::new();
     for account in accounts.values() {
@@ -201,7 +201,7 @@ mod tests {
 
         let file_path = "src/test-files/write-test.csv";
 
-        write_to_file(file_path, map).unwrap();
+        write_to_file(file_path, &map).unwrap();
 
         let file_contents = get_file_contents(file_path).unwrap();
 
@@ -221,7 +221,7 @@ mod tests {
         let account = form_account();
         let map = HashMap::from([(String::from(account.name()), account)]);
 
-        write_to_file(file_path, map).unwrap();
+        write_to_file(file_path, &map).unwrap();
 
         let file_contents = get_file_contents(file_path).unwrap();
 
