@@ -1,8 +1,8 @@
 use chrono::{Local, NaiveDate};
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::{error::Error, fmt};
-use std::collections::HashMap;
 
 pub struct Account {
     name: String,
@@ -38,8 +38,10 @@ impl Account {
     ) -> Result<(), TransactionCreationError> {
         let today = NaiveDate::from(Local::now().naive_local());
         self.balance += amount;
-        self.transactions
-            .insert(format!("{}-{}-{}", today, label, amount), Transaction::new(label, amount, today)?);
+        self.transactions.insert(
+            format!("{}-{}-{}", today, label, amount),
+            Transaction::new(label, amount, today)?,
+        );
         Ok(())
     }
 
@@ -50,22 +52,56 @@ impl Account {
         date: NaiveDate,
     ) -> Result<(), TransactionCreationError> {
         self.balance += amount;
-        self.transactions
-            .insert(format!("{}-{}-{}",date,label,amount), Transaction::new(label, amount, date)?);
+        self.transactions.insert(
+            format!("{}-{}-{}", date, label, amount),
+            Transaction::new(label, amount, date)?,
+        );
         Ok(())
     }
 
-    pub fn remove_transaction(
+    pub fn _edit_transaction_label(
         &mut self,
         key: &str,
+        new_label: &str,
     ) -> Result<(), Box<dyn Error>> {
+        self.check_transaction_exists(key)?;
+        self.transactions
+            .get_mut(key)
+            .unwrap()
+            ._edit_label(new_label);
+        Ok(())
+    }
+
+    pub fn edit_transaction_amount(
+        &mut self,
+        key: &str,
+        new_amount: f32,
+    ) -> Result<(), Box<dyn Error>> {
+        self.check_transaction_exists(key)?;
+
+        self.balance -= self.transactions.get(key).unwrap().amount;
+        self.balance += new_amount;
+
+        self.transactions
+            .get_mut(key)
+            .unwrap()
+            .edit_amount(new_amount);
+        Ok(())
+    }
+
+    pub fn remove_transaction(&mut self, key: &str) -> Result<(), Box<dyn Error>> {
+        self.check_transaction_exists(key)?;
+        self.balance -= self.transactions.remove(key).unwrap().amount;
+        Ok(())
+    }
+
+    fn check_transaction_exists(&mut self, key: &str) -> Result<(), Box<dyn Error>> {
         if !self.transactions.contains_key(key) {
             return Err(Box::from(format!(
                 "Transaction {} is not present in the account",
                 key
-            )))
+            )));
         }
-        self.transactions.remove(key);
         Ok(())
     }
 }
@@ -120,11 +156,11 @@ impl Transaction {
         &self.date
     }
 
-    pub fn _edit_name(&mut self, new: &str) {
+    fn _edit_label(&mut self, new: &str) {
         self.label = String::from(new);
     }
 
-    pub fn _edit_amount(&mut self, new: f32) {
+    fn edit_amount(&mut self, new: f32) {
         self.amount = new;
     }
 }

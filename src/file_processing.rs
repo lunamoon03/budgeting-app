@@ -1,11 +1,11 @@
 use crate::account::Account;
 use chrono::NaiveDate;
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::io::Read;
 use std::str::FromStr;
-use itertools::Itertools;
 
 pub(super) fn get_file_contents(file_path: &str) -> Result<String, Box<dyn Error>> {
     let mut file = match fs::File::open(file_path) {
@@ -26,8 +26,10 @@ pub(super) fn write_to_file(
     for account in accounts.values() {
         buf.push(format!("{}{{", account.name()));
 
-        for transaction in account.transactions()
-            .values().sorted_by(|a,b| Ord::cmp(a.date(),b.date()))
+        for transaction in account
+            .transactions()
+            .values()
+            .sorted_by(|a, b| Ord::cmp(a.date(), b.date()))
         {
             buf.push(format!("{}", transaction.amount()));
             buf.push(transaction.label().to_string());
@@ -46,7 +48,9 @@ pub(super) fn write_to_file(
     Ok(())
 }
 
-pub(super) fn read_from_string(contents: String) -> Result<HashMap<String, Account>, Box<dyn Error>> {
+pub(super) fn read_from_string(
+    contents: String,
+) -> Result<HashMap<String, Account>, Box<dyn Error>> {
     if contents.is_empty() {
         return Ok(HashMap::new());
     }
@@ -111,7 +115,7 @@ fn read_account(split: &[&str], mut iter: usize) -> Result<(Account, usize), Box
         }
     }
     if iter >= split.len() {
-        return Err(Box::from("Malformed file - Wrong number of entries"))
+        return Err(Box::from("Malformed file - Wrong number of entries"));
     }
     if !&split[iter].eq("}") {
         return Err(Box::from("Malformed file - Ending Braces"));
@@ -124,7 +128,7 @@ fn read_account(split: &[&str], mut iter: usize) -> Result<(Account, usize), Box
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{NaiveDate};
+    use chrono::NaiveDate;
 
     #[test]
     fn empty_file() {
@@ -135,7 +139,8 @@ mod tests {
     #[test]
     #[should_panic]
     fn bad_start() {
-        let _ = read_from_string(get_file_contents("src/test-files/bad-start.csv").unwrap()).unwrap();
+        let _ =
+            read_from_string(get_file_contents("src/test-files/bad-start.csv").unwrap()).unwrap();
     }
 
     #[test]
@@ -164,7 +169,8 @@ mod tests {
 
     #[test]
     fn two_accounts() {
-        let b = read_from_string(get_file_contents("src/test-files/2-account.csv").unwrap()).unwrap();
+        let b =
+            read_from_string(get_file_contents("src/test-files/2-account.csv").unwrap()).unwrap();
         assert_eq!(
             &format!("{}", b.get("savings").unwrap()),
             "Name: Savings | Balance: $1.00\n\
@@ -181,8 +187,8 @@ mod tests {
 
     fn form_account() -> Account {
         let mut a = Account::new("Savings");
-        let day1 : NaiveDate = "2024-05-25".parse().unwrap();
-        let day2 : NaiveDate = "2024-05-26".parse().unwrap();
+        let day1: NaiveDate = "2024-05-25".parse().unwrap();
+        let day2: NaiveDate = "2024-05-26".parse().unwrap();
         a.add_transaction("a", 1.0, day1).unwrap();
         a.add_transaction("b", 2.0, day2).unwrap();
         a
@@ -199,8 +205,8 @@ mod tests {
 
         let file_contents = get_file_contents(file_path).unwrap();
 
-        let day1 : NaiveDate = "2024-05-25".parse().unwrap();
-        let day2 : NaiveDate = "2024-05-26".parse().unwrap();
+        let day1: NaiveDate = "2024-05-25".parse().unwrap();
+        let day2: NaiveDate = "2024-05-26".parse().unwrap();
 
         assert_eq!(
             &file_contents,

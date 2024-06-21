@@ -1,6 +1,6 @@
+use itertools::Itertools;
 use std::error::Error;
 use std::io;
-use itertools::Itertools;
 
 mod account;
 mod file_processing;
@@ -13,9 +13,9 @@ fn print_menu() {
         \tatd [account] [label] [amount] [date (YYYY-MM-DD)] - add transaction from another day to account\n\
         \taa  [account] - add new account\n\
         \tra  [account] - remove an account\n\
-        \teta [account] [label] [amount] [date (YYYY-MM-DD)] - edit amount of transaction\n\
-        \tetd [account] [label] [amount] [date (YYYY-MM-DD)] - edit date of transaction\n\
-        \tetl [account] [label] [amount] [new label] [date (YYYY-MM-DD)] - edit label of transaction\n\
+        \teta [account] [label] [amount] [date (YYYY-MM-DD)] [new amount] - edit amount of transaction\n\
+        \tetd [account] [label] [amount] [date (YYYY-MM-DD)] [new date] - edit date of transaction\n\
+        \tetl [account] [label] [amount] [date (YYYY-MM-DD)] [new label] - edit label of transaction\n\
         \trt  [account] [label] [amount] [date (YYYY-MM-DD)] - remove a transaction\n\
         \th   - show menu\n\
         \ts   - save changes\n\
@@ -25,9 +25,13 @@ fn print_menu() {
 }
 
 pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
-    let mut accounts = file_processing::read_from_string(file_processing::get_file_contents(file_path)?)?;
+    let mut accounts =
+        file_processing::read_from_string(file_processing::get_file_contents(file_path)?)?;
 
-    for account in accounts.values().sorted_by(|a,b| Ord::cmp(a.name(),b.name())) {
+    for account in accounts
+        .values()
+        .sorted_by(|a, b| Ord::cmp(a.name(), b.name()))
+    {
         println!("{account}\n");
     }
 
@@ -35,17 +39,21 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
     //let inputs: HashSet<&str> = HashSet::from(["at", "atd", "aa", "eta", "etd", "etl", "rt", "q"]);
     print_menu();
 
-
     loop {
         let mut trimmed_input: String;
         loop {
             let mut user_input = String::new();
             io::stdin().read_line(&mut user_input)?;
             trimmed_input = String::from(user_input.trim_end_matches('\n'));
-            if !trimmed_input.is_empty() { break; }
+            if !trimmed_input.is_empty() {
+                break;
+            }
         }
 
-        let split_input = trimmed_input.split(' ').map(String::from).collect::<Vec<String>>();
+        let split_input = trimmed_input
+            .split(' ')
+            .map(String::from)
+            .collect::<Vec<String>>();
 
         let mut result = Ok(());
 
@@ -54,7 +62,7 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
             "atd" => result = input_processing::add_transaction(split_input, &mut accounts),
             "aa" => result = input_processing::add_account(split_input, &mut accounts),
             "ra" => result = input_processing::remove_account(split_input, &mut accounts),
-            "eta" => todo!(),
+            "eta" => result = input_processing::edit_transaction_amount(split_input, &mut accounts),
             "etd" => todo!(),
             "etl" => todo!(),
             "rt" => result = input_processing::remove_transaction(split_input, &mut accounts),
@@ -65,10 +73,14 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
             _ => println!("Please enter a valid input"),
         }
 
-        if let Err(e) = result { println!("Error: {}", e) }
-        else {
+        if let Err(e) = result {
+            println!("Error: {}", e)
+        } else {
             println!();
-            for account in accounts.values().sorted_by(|a,b| Ord::cmp(a.name(),b.name())) {
+            for account in accounts
+                .values()
+                .sorted_by(|a, b| Ord::cmp(a.name(), b.name()))
+            {
                 println!("{account}\n");
             }
         }
