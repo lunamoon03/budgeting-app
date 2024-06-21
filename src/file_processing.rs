@@ -5,6 +5,7 @@ use std::error::Error;
 use std::fs;
 use std::io::Read;
 use std::str::FromStr;
+use itertools::Itertools;
 
 pub(super) fn get_file_contents(file_path: &str) -> Result<String, Box<dyn Error>> {
     let mut file = match fs::File::open(file_path) {
@@ -25,7 +26,9 @@ pub(super) fn write_to_file(
     for account in accounts.values() {
         buf.push(format!("{}{{", account.name()));
 
-        for (_, transaction) in account.transactions().iter() {
+        for transaction in account.transactions()
+            .values().sorted_by(|a,b| Ord::cmp(a.date(),b.date()))
+        {
             buf.push(format!("{}", transaction.amount()));
             buf.push(transaction.label().to_string());
             buf.push(format!("{}", transaction.date()));
@@ -121,7 +124,7 @@ fn read_account(split: &[&str], mut iter: usize) -> Result<(Account, usize), Box
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Local, NaiveDate};
+    use chrono::{NaiveDate};
 
     #[test]
     fn empty_file() {
@@ -178,8 +181,10 @@ mod tests {
 
     fn form_account() -> Account {
         let mut a = Account::new("Savings");
-        a.add_new_transaction("a", 1.0).unwrap();
-        a.add_new_transaction("b", 2.0).unwrap();
+        let day1 : NaiveDate = "2024-05-25".parse().unwrap();
+        let day2 : NaiveDate = "2024-05-26".parse().unwrap();
+        a.add_transaction("a", 1.0, day1).unwrap();
+        a.add_transaction("b", 2.0, day2).unwrap();
         a
     }
 
@@ -188,23 +193,24 @@ mod tests {
         let account = form_account();
         let map = HashMap::from([(String::from(account.name()), account)]);
 
-        let file_path = "src/test-files/write-test";
+        let file_path = "src/test-files/write-test.csv";
 
         write_to_file(file_path, map).unwrap();
 
         let file_contents = get_file_contents(file_path).unwrap();
 
-        let date = NaiveDate::from(Local::now().naive_local());
+        let day1 : NaiveDate = "2024-05-25".parse().unwrap();
+        let day2 : NaiveDate = "2024-05-26".parse().unwrap();
 
         assert_eq!(
             &file_contents,
-            &format!("Savings{{,1,a,{date},2,b,{date},}}")
+            &format!("Savings{{,1,a,{day1},2,b,{day2},}}")
         );
     }
 
     #[test]
     fn write_read_test() {
-        let file_path = "src/test-files/write-read-test";
+        let file_path = "src/test-files/write-read-test.csv";
 
         let account = form_account();
         let map = HashMap::from([(String::from(account.name()), account)]);

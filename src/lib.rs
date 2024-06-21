@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::io;
+use itertools::Itertools;
 
 mod account;
 mod file_processing;
@@ -12,10 +13,10 @@ fn print_menu() {
         \tatd [account] [label] [amount] [date (YYYY-MM-DD)] - add transaction from another day to account\n\
         \taa  [account] - add new account\n\
         \tra  [account] - remove an account\n\
-        \teta [account] [label] [amount] - edit amount of transaction\n\
-        \tetd [account] [label] [date (YYYY-MM-DD)] - edit date of transaction\n\
-        \tetl [account] [label] [new label] - edit label of transaction\n\
-        \trt  [account] [label] - remove a transaction\n\
+        \teta [account] [label] [amount] [date (YYYY-MM-DD)] - edit amount of transaction\n\
+        \tetd [account] [label] [amount] [date (YYYY-MM-DD)] - edit date of transaction\n\
+        \tetl [account] [label] [amount] [new label] [date (YYYY-MM-DD)] - edit label of transaction\n\
+        \trt  [account] [label] [amount] [date (YYYY-MM-DD)] - remove a transaction\n\
         \th   - show menu\n\
         \ts   - save changes\n\
         \tu   - undo all changes since last save\n\
@@ -26,7 +27,7 @@ fn print_menu() {
 pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
     let mut accounts = file_processing::read_from_string(file_processing::get_file_contents(file_path)?)?;
 
-    for account in accounts.values() {
+    for account in accounts.values().sorted_by(|a,b| Ord::cmp(a.name(),b.name())) {
         println!("{account}\n");
     }
 
@@ -52,10 +53,11 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
             "at" => result = input_processing::add_new_transaction(split_input, &mut accounts),
             "atd" => result = input_processing::add_transaction(split_input, &mut accounts),
             "aa" => result = input_processing::add_account(split_input, &mut accounts),
+            "ra" => result = input_processing::remove_account(split_input, &mut accounts),
             "eta" => todo!(),
             "etd" => todo!(),
             "etl" => todo!(),
-            "rt" => todo!(),
+            "rt" => result = input_processing::remove_transaction(split_input, &mut accounts),
             "h" => print_menu(),
             "s" => todo!(),
             "u" => todo!(),
@@ -66,7 +68,7 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
         if let Err(e) = result { println!("Error: {}", e) }
         else {
             println!();
-            for account in accounts.values() {
+            for account in accounts.values().sorted_by(|a,b| Ord::cmp(a.name(),b.name())) {
                 println!("{account}\n");
             }
         }

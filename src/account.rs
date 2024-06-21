@@ -1,13 +1,13 @@
 use chrono::{Local, NaiveDate};
 use itertools::Itertools;
-use sorted_list::SortedList;
 use std::fmt::Formatter;
 use std::{error::Error, fmt};
+use std::collections::HashMap;
 
 pub struct Account {
     name: String,
     balance: f32,
-    transactions: SortedList<NaiveDate, Transaction>,
+    transactions: HashMap<String, Transaction>,
 }
 
 impl Account {
@@ -15,7 +15,7 @@ impl Account {
         Account {
             name: String::from(name),
             balance: 0.0,
-            transactions: SortedList::new(),
+            transactions: HashMap::new(),
         }
     }
 
@@ -27,7 +27,7 @@ impl Account {
         &self.balance
     }
 
-    pub fn transactions(&self) -> &SortedList<NaiveDate, Transaction> {
+    pub fn transactions(&self) -> &HashMap<String, Transaction> {
         &self.transactions
     }
 
@@ -36,10 +36,10 @@ impl Account {
         label: &str,
         amount: f32,
     ) -> Result<(), TransactionCreationError> {
-        let now = NaiveDate::from(Local::now().naive_local());
+        let today = NaiveDate::from(Local::now().naive_local());
         self.balance += amount;
         self.transactions
-            .insert(now, Transaction::new(label, amount, now)?);
+            .insert(format!("{}-{}-{}", today, label, amount), Transaction::new(label, amount, today)?);
         Ok(())
     }
 
@@ -51,7 +51,21 @@ impl Account {
     ) -> Result<(), TransactionCreationError> {
         self.balance += amount;
         self.transactions
-            .insert(date, Transaction::new(label, amount, date)?);
+            .insert(format!("{}-{}-{}",date,label,amount), Transaction::new(label, amount, date)?);
+        Ok(())
+    }
+
+    pub fn remove_transaction(
+        &mut self,
+        key: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        if !self.transactions.contains_key(key) {
+            return Err(Box::from(format!(
+                "Transaction {} is not present in the account",
+                key
+            )))
+        }
+        self.transactions.remove(key);
         Ok(())
     }
 }
@@ -63,7 +77,10 @@ impl fmt::Display for Account {
             "Name: {} | Balance: ${:.2}\nTransactions:\n{}",
             self.name,
             self.balance,
-            self.transactions.values().join("\n"),
+            self.transactions
+                .values()
+                .sorted_by(|a, b| Ord::cmp(&a.date, &b.date))
+                .join("\n"),
         )
     }
 }
@@ -72,7 +89,7 @@ impl fmt::Display for Account {
 pub struct Transaction {
     label: String,
     amount: f32,
-    time: NaiveDate,
+    date: NaiveDate,
 }
 
 impl Transaction {
@@ -89,7 +106,7 @@ impl Transaction {
         Ok(Transaction {
             label: String::from(label),
             amount,
-            time: now,
+            date: now,
         })
     }
 
@@ -100,7 +117,7 @@ impl Transaction {
         &self.amount
     }
     pub fn date(&self) -> &NaiveDate {
-        &self.time
+        &self.date
     }
 
     pub fn _edit_name(&mut self, new: &str) {
@@ -117,7 +134,7 @@ impl fmt::Display for Transaction {
         write!(
             f,
             "Date: {} | Label: {} | Amount: ${:.2}",
-            self.time.format("%d %b %Y"),
+            self.date.format("%d %b %Y"),
             self.label,
             self.amount
         )
