@@ -7,25 +7,21 @@ use itertools::Itertools;
 
 pub(super) fn add_new_transaction(inputs: Vec<String>, accounts: &mut HashMap<String, Account>)
                                   -> Result<(), Box<dyn Error>> {
-    if inputs.len() != 4 {
+    let input_length = 4;
+    if inputs.len() != input_length {
         return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be 3"
-            ,inputs.len()-1
+            "Wrong number of inputs. {} when it should be {}"
+            ,inputs.len()-1,
+            input_length-1
         )));
     }
 
     // Can unwrap freely due to check of input len
-    let account_name = match get_account_name(&inputs, accounts) {
-        Ok(value) => value,
-        Err(value) => return value,
-    };
+    let account_name = get_account_name(&inputs, accounts)?;
 
     let label = inputs.get(2).unwrap().to_case(Case::Title);
 
-    let amount = match get_transaction_amount(&inputs) {
-        Ok(value) => value,
-        Err(value) => return value,
-    };
+    let amount = get_transaction_amount(&inputs)?;
 
     let account: &mut Account = match accounts.get_mut(&account_name) {
         Some(a) => a,
@@ -41,25 +37,21 @@ pub(super) fn add_new_transaction(inputs: Vec<String>, accounts: &mut HashMap<St
 
 pub(super) fn add_transaction (inputs: Vec<String>, accounts: &mut HashMap<String, Account>)
                                -> Result<(), Box<dyn Error>> {
-    if inputs.len() != 5 {
+    let input_length = 5;
+    if inputs.len() != input_length {
         return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be 3"
-            ,inputs.len()-1
+            "Wrong number of inputs. {} when it should be {}"
+            ,inputs.len()-1,
+            input_length-1
         )));
     }
 
     // Can unwrap freely due to check of input len
-    let account_name = match get_account_name(&inputs, accounts) {
-        Ok(value) => value,
-        Err(value) => return value,
-    };
+    let account_name = get_account_name(&inputs, accounts)?;
 
     let label = inputs.get(2).unwrap().to_case(Case::Title);
 
-    let amount = match get_transaction_amount(&inputs) {
-        Ok(value) => value,
-        Err(value) => return value,
-    };
+    let amount = get_transaction_amount(&inputs)?;
 
     let date: NaiveDate = match inputs.get(4).unwrap().parse() {
         Ok(f) => f,
@@ -82,27 +74,78 @@ pub(super) fn add_transaction (inputs: Vec<String>, accounts: &mut HashMap<Strin
 }
 
 
+pub(super) fn add_account(inputs: Vec<String>, accounts: &mut HashMap<String, Account>)
+                          -> Result<(), Box<dyn Error>> {
+    let input_length = 2;
+    if inputs.len() != input_length {
+        return Err(Box::from(format!(
+            "Wrong number of inputs. {} when it should be {}"
+            ,inputs.len()-1,
+            input_length-1
+        )));
+    }
+
+    let account_name = inputs.get(1).unwrap().to_case(Case::Title);
+
+    if accounts.keys().contains(&account_name.to_lowercase()) {
+        return Err(Box::from(format!(
+            "Account {account_name} already exists.",
+        )))
+    }
+
+    let new_account = Account::new(&account_name);
+    accounts.insert(account_name.to_lowercase(),new_account);
+
+
+    Ok(())
+}
+
+pub(super) fn remove_account(inputs: Vec<String>, accounts: &mut HashMap<String, Account>)
+                          -> Result<(), Box<dyn Error>> {
+    let input_length = 2;
+    if inputs.len() != input_length {
+        return Err(Box::from(format!(
+            "Wrong number of inputs. {} when it should be {}"
+            ,inputs.len()-1,
+            input_length-1
+        )));
+    }
+
+    let account_name = inputs.get(1).unwrap().to_case(Case::Title);
+
+    if !accounts.keys().contains(&account_name.to_lowercase()) {
+        return Err(Box::from(format!(
+            "Account {account_name} does not exist.",
+        )))
+    }
+
+    accounts.remove(&account_name.to_lowercase());
+
+    Ok(())
+}
+
+
 
 fn get_account_name(inputs: &[String], accounts: &HashMap<String, Account>)
-    -> Result<String, Result<(), Box<dyn Error>>>
+    -> Result<String,Box<dyn Error>>
 {
     let account_name = inputs.get(1).unwrap().to_lowercase();
     if !accounts.keys().contains(&account_name) {
-        return Err(Err(Box::from(format!(
+        return Err(Box::from(format!(
             "Account name {} not present.",
             account_name.to_case(Case::Title)
-        ))))
+        )))
     }
     Ok(account_name)
 }
 
-fn get_transaction_amount(inputs: &[String]) -> Result<f32, Result<(), Box<dyn Error>>> {
+fn get_transaction_amount(inputs: &[String]) -> Result<f32, Box<dyn Error>> {
     let amount: f32 = match inputs.get(3).unwrap().parse() {
         Ok(f) => f,
-        Err(e) => return Err(Err(Box::from(format!(
+        Err(e) => return Err(Box::from(format!(
             "Amount entered invalid: {}",
             e
-        )))),
+        ))),
     };
     Ok(amount)
 }
@@ -112,7 +155,7 @@ mod tests {
     use std::collections::HashMap;
     use chrono::{Local, NaiveDate};
     use crate::account::Account;
-    use crate::input_processing::{add_new_transaction, add_transaction};
+    use crate::input_processing::{add_account, add_new_transaction, add_transaction, remove_account};
 
     #[test]
     fn add_today() {
@@ -219,11 +262,11 @@ mod tests {
         account_map.insert(account.name().to_lowercase(), account);
 
         let inputs = vec!(
-            String::from("at"),
+            String::from("atd"),
             String::from("Savings"),
             String::from("transaction1"),
             String::from("-10.00"),
-            String::from("2024-05-26"),
+            String::from("2024-05-26")
         );
 
         add_transaction(inputs, &mut account_map).unwrap();
@@ -243,5 +286,68 @@ mod tests {
         );
 
         assert_eq!(account_map.get("savings").unwrap().balance(), &-10f32);
+    }
+
+    #[test]
+    fn add_account_test() {
+        let mut account_map = HashMap::new();
+        let inputs = vec!(
+            String::from("aa"),
+            String::from("Savings")
+        );
+
+        add_account(inputs, &mut account_map).unwrap();
+
+        assert_eq!(account_map.len(),1);
+        assert_eq!(account_map.get("savings").unwrap().balance(),&0f32);
+        assert_eq!(account_map.get("savings").unwrap().transactions().len(),0);
+
+        assert_eq!(
+            &format!("{}", account_map.get("savings").unwrap()),
+            "Name: Savings | Balance: $0.00\n\
+            Transactions:\n"
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn add_account_already_exists() {
+        let mut account_map = HashMap::new();
+        account_map.insert(String::from("savings"),Account::new("Savings"));
+
+        let inputs = vec!(
+            String::from("aa"),
+            String::from("Savings")
+        );
+
+        add_account(inputs, &mut account_map).unwrap();
+    }
+
+    #[test]
+    fn remove_account_test() {
+        let mut account_map = HashMap::new();
+        account_map.insert(String::from("savings"),Account::new("Savings"));
+
+        let inputs = vec!(
+            String::from("aa"),
+            String::from("Savings")
+        );
+
+        remove_account(inputs, &mut account_map).unwrap();
+
+        assert_eq!(account_map.len(),0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn remove_account_does_not_exist() {
+        let mut account_map = HashMap::new();
+
+        let inputs = vec!(
+            String::from("aa"),
+            String::from("Savings")
+        );
+
+        remove_account(inputs, &mut account_map).unwrap();
     }
 }

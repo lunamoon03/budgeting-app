@@ -11,11 +11,14 @@ fn print_menu() {
         \tat  [account] [label] [amount] - add transaction from today to account\n\
         \tatd [account] [label] [amount] [date (YYYY-MM-DD)] - add transaction from another day to account\n\
         \taa  [account] - add new account\n\
+        \tra  [account] - remove an account\n\
         \teta [account] [label] [amount] - edit amount of transaction\n\
         \tetd [account] [label] [date (YYYY-MM-DD)] - edit date of transaction\n\
         \tetl [account] [label] [new label] - edit label of transaction\n\
         \trt  [account] [label] - remove a transaction\n\
         \th   - show menu\n\
+        \ts   - save changes\n\
+        \tu   - undo all changes since last save\n\
         \tq   - exit program\n\
         ----------------------------------------------------------------------------------------------------\n");
 }
@@ -48,17 +51,25 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
         match split_input.first().unwrap_or(&"".to_string()).as_str() {
             "at" => result = input_processing::add_new_transaction(split_input, &mut accounts),
             "atd" => result = input_processing::add_transaction(split_input, &mut accounts),
-            "aa" => println!("aa"),
-            "eta" => println!("eta"),
-            "etd" => println!("etd"),
-            "etl" => println!("etl"),
-            "rt" => println!("rt"),
+            "aa" => result = input_processing::add_account(split_input, &mut accounts),
+            "eta" => todo!(),
+            "etd" => todo!(),
+            "etl" => todo!(),
+            "rt" => todo!(),
             "h" => print_menu(),
+            "s" => todo!(),
+            "u" => todo!(),
             "q" => break,
             _ => println!("Please enter a valid input"),
         }
 
         if let Err(e) = result { println!("Error: {}", e) }
+        else {
+            println!();
+            for account in accounts.values() {
+                println!("{account}\n");
+            }
+        }
     }
 
     file_processing::write_to_file(file_path, accounts)?;
