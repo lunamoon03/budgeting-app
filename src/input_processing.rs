@@ -159,6 +159,81 @@ pub(super) fn edit_transaction_amount(
     Ok(())
 }
 
+pub(super) fn edit_transaction_date(
+    inputs: Vec<String>,
+    accounts: &mut HashMap<String, Account>,
+) -> Result<(), Box<dyn Error>> {
+    let input_length = 6;
+    if inputs.len() != input_length {
+        return Err(Box::from(format!(
+            "Wrong number of inputs. {} when it should be {}",
+            inputs.len() - 1,
+            input_length - 1
+        )));
+    }
+
+    // Can unwrap freely due to check of input len
+    let account_name = get_account_name(&inputs, accounts)?;
+
+    let label = inputs.get(2).unwrap().to_case(Case::Title);
+
+    let amount = get_transaction_amount(&inputs)?;
+
+    let date = get_transaction_date(&inputs)?;
+
+    let new_date: NaiveDate = match inputs.get(5).unwrap().parse() {
+        Ok(f) => f,
+        Err(e) => return Err(Box::from(format!("Date entered invalid: {}", e))),
+    };
+
+    let transaction_key = format!("{}-{}-{}", date, label, amount);
+
+    let account: &mut Account = match accounts.get_mut(&account_name) {
+        Some(a) => a,
+        None => return Err(Box::from(format!("Account name {account_name} invalid"))),
+    };
+
+    account.edit_transaction_date(&transaction_key, new_date)?;
+
+    Ok(())
+}
+
+pub(super) fn edit_transaction_label(
+    inputs: Vec<String>,
+    accounts: &mut HashMap<String, Account>,
+) -> Result<(), Box<dyn Error>> {
+    let input_length = 6;
+    if inputs.len() != input_length {
+        return Err(Box::from(format!(
+            "Wrong number of inputs. {} when it should be {}",
+            inputs.len() - 1,
+            input_length - 1
+        )));
+    }
+
+    // Can unwrap freely due to check of input len
+    let account_name = get_account_name(&inputs, accounts)?;
+
+    let label = inputs.get(2).unwrap().to_case(Case::Title);
+
+    let amount = get_transaction_amount(&inputs)?;
+
+    let date = get_transaction_date(&inputs)?;
+
+    let new_label = inputs.get(5).unwrap().to_case(Case::Title);
+
+    let transaction_key = format!("{}-{}-{}", date, label, amount);
+
+    let account: &mut Account = match accounts.get_mut(&account_name) {
+        Some(a) => a,
+        None => return Err(Box::from(format!("Account name {account_name} invalid"))),
+    };
+
+    account.edit_transaction_label(&transaction_key, new_label)?;
+
+    Ok(())
+}
+
 pub(super) fn remove_transaction(
     inputs: Vec<String>,
     accounts: &mut HashMap<String, Account>,
@@ -227,8 +302,8 @@ fn get_transaction_date(inputs: &[String]) -> Result<NaiveDate, Box<dyn Error>> 
 mod tests {
     use crate::account::Account;
     use crate::input_processing::{
-        add_account, add_new_transaction, add_transaction, edit_transaction_amount, remove_account,
-        remove_transaction,
+        add_account, add_new_transaction, add_transaction, edit_transaction_amount,
+        edit_transaction_date, edit_transaction_label, remove_account, remove_transaction,
     };
     use chrono::format::{DelayedFormat, StrftimeItems};
     use chrono::{Local, NaiveDate};
@@ -456,7 +531,7 @@ mod tests {
             String::from("Expenses"),
             String::from("transaction1"),
             String::from("10.00"),
-            String::from(format!("{}", today())),
+            format!("{}", today()),
             String::from("20.00"),
         ];
 
@@ -476,7 +551,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn edit_transaction_doesnt_exist() {
+    fn edit_transaction_amount_doesnt_exist() {
         let mut account_map = HashMap::new();
         account_map.insert(String::from("expenses"), Account::new("Expenses"));
 
@@ -489,6 +564,250 @@ mod tests {
         ];
 
         edit_transaction_amount(inputs, &mut account_map).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn edit_transaction_amount_collision() {
+        let mut account_map = HashMap::new();
+        account_map.insert(String::from("expenses"), Account::new("Expenses"));
+
+        let mut inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            format!("{}", today()),
+        ];
+
+        add_transaction(inputs, &mut account_map).unwrap();
+
+        inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("20.00"),
+            format!("{}", today()),
+        ];
+
+        add_transaction(inputs, &mut account_map).unwrap();
+
+        inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            format!("{}", today()),
+            String::from("20.00"),
+        ];
+
+        edit_transaction_amount(inputs, &mut account_map).unwrap();
+    }
+
+    #[test]
+    fn edit_transaction_date_test() {
+        let mut account_map = HashMap::new();
+        account_map.insert(String::from("expenses"), Account::new("Expenses"));
+
+        let mut inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            String::from("2024-05-25"),
+        ];
+
+        add_transaction(inputs, &mut account_map).unwrap();
+
+        assert_eq!(account_map.get("expenses").unwrap().transactions().len(), 1);
+        assert_eq!(
+            &format!("{}", account_map.get("expenses").unwrap()),
+            &"Name: Expenses | Balance: $10.00\n\
+            Transactions:\n\
+            Date: 25 May 2024 | Label: Transaction 1 | Amount: $10.00"
+                .to_string()
+        );
+
+        inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            String::from("2024-05-25"),
+            String::from("2024-05-26"),
+        ];
+
+        edit_transaction_date(inputs, &mut account_map).unwrap();
+
+        assert_eq!(account_map.get("expenses").unwrap().transactions().len(), 1);
+        assert_eq!(
+            &format!("{}", account_map.get("expenses").unwrap()),
+            &"Name: Expenses | Balance: $10.00\n\
+            Transactions:\n\
+            Date: 26 May 2024 | Label: Transaction 1 | Amount: $10.00"
+                .to_string()
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn edit_transaction_date_doesnt_exist() {
+        let mut account_map = HashMap::new();
+        account_map.insert(String::from("expenses"), Account::new("Expenses"));
+
+        let inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            String::from("2024-05-25"),
+            String::from("2024-05-26"),
+        ];
+
+        edit_transaction_date(inputs, &mut account_map).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn edit_transaction_date_collision() {
+        let mut account_map = HashMap::new();
+        account_map.insert(String::from("expenses"), Account::new("Expenses"));
+
+        let mut inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            String::from("2024-05-25"),
+        ];
+
+        add_transaction(inputs, &mut account_map).unwrap();
+
+        inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            String::from("2024-05-26"),
+        ];
+
+        add_transaction(inputs, &mut account_map).unwrap();
+
+        inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            String::from("2024-05-25"),
+            String::from("2024-05-26"),
+        ];
+
+        edit_transaction_date(inputs, &mut account_map).unwrap();
+    }
+
+    #[test]
+    fn edit_transaction_label_test() {
+        let mut account_map = HashMap::new();
+        account_map.insert(String::from("expenses"), Account::new("Expenses"));
+
+        let mut inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            format!("{}", today()),
+        ];
+
+        add_transaction(inputs, &mut account_map).unwrap();
+
+        assert_eq!(account_map.get("expenses").unwrap().transactions().len(), 1);
+        assert_eq!(
+            &format!("{}", account_map.get("expenses").unwrap()),
+            &format!(
+                "Name: Expenses | Balance: $10.00\n\
+                   Transactions:\n\
+                   Date: {} | Label: Transaction 1 | Amount: $10.00",
+                today_formatted()
+            )
+        );
+
+        inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            format!("{}", today()),
+            String::from("transaction2"),
+        ];
+
+        edit_transaction_label(inputs, &mut account_map).unwrap();
+
+        assert_eq!(account_map.get("expenses").unwrap().transactions().len(), 1);
+        assert_eq!(
+            &format!("{}", account_map.get("expenses").unwrap()),
+            &format!(
+                "Name: Expenses | Balance: $10.00\n\
+                   Transactions:\n\
+                   Date: {} | Label: Transaction 2 | Amount: $10.00",
+                today_formatted()
+            )
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn edit_transaction_label_doesnt_exist() {
+        let mut account_map = HashMap::new();
+        account_map.insert(String::from("expenses"), Account::new("Expenses"));
+
+        let inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            format!("{}", today()),
+            String::from("transaction2"),
+        ];
+
+        edit_transaction_label(inputs, &mut account_map).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn edit_transaction_label_collision() {
+        let mut account_map = HashMap::new();
+        account_map.insert(String::from("expenses"), Account::new("Expenses"));
+
+        let mut inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            format!("{}", today()),
+        ];
+
+        add_transaction(inputs, &mut account_map).unwrap();
+
+        inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction2"),
+            String::from("10.00"),
+            format!("{}", today()),
+        ];
+
+        add_transaction(inputs, &mut account_map).unwrap();
+
+        inputs = vec![
+            String::from("rt"),
+            String::from("Expenses"),
+            String::from("transaction1"),
+            String::from("10.00"),
+            format!("{}", today()),
+            String::from("transaction2"),
+        ];
+
+        edit_transaction_date(inputs, &mut account_map).unwrap();
     }
 
     #[test]

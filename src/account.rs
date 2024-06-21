@@ -59,16 +59,24 @@ impl Account {
         Ok(())
     }
 
-    pub fn _edit_transaction_label(
+    pub fn edit_transaction_label(
         &mut self,
         key: &str,
-        new_label: &str,
+        new_label: String,
     ) -> Result<(), Box<dyn Error>> {
         self.check_transaction_exists(key)?;
+
+        let transaction = self.transactions.get(key).unwrap();
+
+        self.check_transaction_not_exists(&format!(
+            "{}-{}-{}",
+            transaction.date, new_label, transaction.date
+        ))?;
+
         self.transactions
             .get_mut(key)
             .unwrap()
-            ._edit_label(new_label);
+            .edit_label(new_label);
         Ok(())
     }
 
@@ -79,6 +87,13 @@ impl Account {
     ) -> Result<(), Box<dyn Error>> {
         self.check_transaction_exists(key)?;
 
+        let transaction = self.transactions.get(key).unwrap();
+
+        self.check_transaction_not_exists(&format!(
+            "{}-{}-{}",
+            transaction.date, transaction.label, new_amount
+        ))?;
+
         self.balance -= self.transactions.get(key).unwrap().amount;
         self.balance += new_amount;
 
@@ -86,6 +101,24 @@ impl Account {
             .get_mut(key)
             .unwrap()
             .edit_amount(new_amount);
+        Ok(())
+    }
+
+    pub fn edit_transaction_date(
+        &mut self,
+        key: &str,
+        new_date: NaiveDate,
+    ) -> Result<(), Box<dyn Error>> {
+        self.check_transaction_exists(key)?;
+
+        let transaction = self.transactions.get(key).unwrap();
+
+        self.check_transaction_not_exists(&format!(
+            "{}-{}-{}",
+            new_date, transaction.label, transaction.amount
+        ))?;
+
+        self.transactions.get_mut(key).unwrap().edit_date(new_date);
         Ok(())
     }
 
@@ -99,6 +132,16 @@ impl Account {
         if !self.transactions.contains_key(key) {
             return Err(Box::from(format!(
                 "Transaction {} is not present in the account",
+                key
+            )));
+        }
+        Ok(())
+    }
+
+    fn check_transaction_not_exists(&mut self, key: &str) -> Result<(), Box<dyn Error>> {
+        if self.transactions.contains_key(key) {
+            return Err(Box::from(format!(
+                "Transaction {} is already present in the account",
                 key
             )));
         }
@@ -156,12 +199,16 @@ impl Transaction {
         &self.date
     }
 
-    fn _edit_label(&mut self, new: &str) {
-        self.label = String::from(new);
+    fn edit_label(&mut self, new: String) {
+        self.label = new;
     }
 
     fn edit_amount(&mut self, new: f32) {
         self.amount = new;
+    }
+
+    fn edit_date(&mut self, new: NaiveDate) {
+        self.date = new;
     }
 }
 

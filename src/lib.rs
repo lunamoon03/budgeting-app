@@ -1,3 +1,4 @@
+use input_processing::*;
 use itertools::Itertools;
 use std::error::Error;
 use std::io;
@@ -58,14 +59,14 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
         let mut result = Ok(());
 
         match split_input.first().unwrap_or(&"".to_string()).as_str() {
-            "at" => result = input_processing::add_new_transaction(split_input, &mut accounts),
-            "atd" => result = input_processing::add_transaction(split_input, &mut accounts),
-            "aa" => result = input_processing::add_account(split_input, &mut accounts),
-            "ra" => result = input_processing::remove_account(split_input, &mut accounts),
-            "eta" => result = input_processing::edit_transaction_amount(split_input, &mut accounts),
-            "etd" => todo!(),
-            "etl" => todo!(),
-            "rt" => result = input_processing::remove_transaction(split_input, &mut accounts),
+            "at" => result = add_new_transaction(split_input, &mut accounts),
+            "atd" => result = add_transaction(split_input, &mut accounts),
+            "aa" => result = add_account(split_input, &mut accounts),
+            "ra" => result = remove_account(split_input, &mut accounts),
+            "eta" => result = edit_transaction_amount(split_input, &mut accounts),
+            "etd" => result = edit_transaction_date(split_input, &mut accounts),
+            "etl" => result = edit_transaction_label(split_input, &mut accounts),
+            "rt" => result = remove_transaction(split_input, &mut accounts),
             "h" => print_menu(),
             "s" => todo!(),
             "u" => todo!(),
