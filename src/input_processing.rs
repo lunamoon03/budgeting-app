@@ -9,14 +9,7 @@ pub(super) fn add_new_transaction(
     inputs: Vec<String>,
     accounts: &mut HashMap<String, Account>,
 ) -> Result<(), Box<dyn Error>> {
-    let input_length = 4;
-    if inputs.len() != input_length {
-        return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be {}",
-            inputs.len() - 1,
-            input_length - 1
-        )));
-    }
+    check_input_length(&inputs, 4)?;
 
     // Can unwrap freely due to check of input len
     let account_name = get_account_name(&inputs, accounts)?;
@@ -39,14 +32,7 @@ pub(super) fn add_transaction(
     inputs: Vec<String>,
     accounts: &mut HashMap<String, Account>,
 ) -> Result<(), Box<dyn Error>> {
-    let input_length = 5;
-    if inputs.len() != input_length {
-        return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be {}",
-            inputs.len() - 1,
-            input_length - 1
-        )));
-    }
+    check_input_length(&inputs, 5)?;
 
     // Can unwrap freely due to check of input len
     let account_name = get_account_name(&inputs, accounts)?;
@@ -71,14 +57,7 @@ pub(super) fn add_account(
     inputs: Vec<String>,
     accounts: &mut HashMap<String, Account>,
 ) -> Result<(), Box<dyn Error>> {
-    let input_length = 2;
-    if inputs.len() != input_length {
-        return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be {}",
-            inputs.len() - 1,
-            input_length - 1
-        )));
-    }
+    check_input_length(&inputs, 2)?;
 
     let account_name = inputs.get(1).unwrap().to_case(Case::Title);
 
@@ -98,14 +77,7 @@ pub(super) fn remove_account(
     inputs: Vec<String>,
     accounts: &mut HashMap<String, Account>,
 ) -> Result<(), Box<dyn Error>> {
-    let input_length = 2;
-    if inputs.len() != input_length {
-        return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be {}",
-            inputs.len() - 1,
-            input_length - 1
-        )));
-    }
+    check_input_length(&inputs, 2)?;
 
     let account_name = inputs.get(1).unwrap().to_case(Case::Title);
 
@@ -124,14 +96,7 @@ pub(super) fn edit_transaction_amount(
     inputs: Vec<String>,
     accounts: &mut HashMap<String, Account>,
 ) -> Result<(), Box<dyn Error>> {
-    let input_length = 6;
-    if inputs.len() != input_length {
-        return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be {}",
-            inputs.len() - 1,
-            input_length - 1
-        )));
-    }
+    check_input_length(&inputs, 6)?;
 
     // Can unwrap freely due to check of input len
     let account_name = get_account_name(&inputs, accounts)?;
@@ -163,14 +128,7 @@ pub(super) fn edit_transaction_date(
     inputs: Vec<String>,
     accounts: &mut HashMap<String, Account>,
 ) -> Result<(), Box<dyn Error>> {
-    let input_length = 6;
-    if inputs.len() != input_length {
-        return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be {}",
-            inputs.len() - 1,
-            input_length - 1
-        )));
-    }
+    check_input_length(&inputs, 6)?;
 
     // Can unwrap freely due to check of input len
     let account_name = get_account_name(&inputs, accounts)?;
@@ -202,14 +160,7 @@ pub(super) fn edit_transaction_label(
     inputs: Vec<String>,
     accounts: &mut HashMap<String, Account>,
 ) -> Result<(), Box<dyn Error>> {
-    let input_length = 6;
-    if inputs.len() != input_length {
-        return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be {}",
-            inputs.len() - 1,
-            input_length - 1
-        )));
-    }
+    check_input_length(&inputs, 6)?;
 
     // Can unwrap freely due to check of input len
     let account_name = get_account_name(&inputs, accounts)?;
@@ -238,14 +189,7 @@ pub(super) fn remove_transaction(
     inputs: Vec<String>,
     accounts: &mut HashMap<String, Account>,
 ) -> Result<(), Box<dyn Error>> {
-    let input_length = 5;
-    if inputs.len() != input_length {
-        return Err(Box::from(format!(
-            "Wrong number of inputs. {} when it should be {}",
-            inputs.len() - 1,
-            input_length - 1
-        )));
-    }
+    check_input_length(&inputs, 5)?;
 
     // Can unwrap freely due to check of input len
     let account_name = get_account_name(&inputs, accounts)?;
@@ -265,6 +209,17 @@ pub(super) fn remove_transaction(
 
     account.remove_transaction(&transaction_key)?;
 
+    Ok(())
+}
+
+fn check_input_length(inputs: &Vec<String>, input_length: usize) -> Result<(), Box<dyn Error>> {
+    if inputs.len() != input_length {
+        return Err(Box::from(format!(
+            "Wrong number of inputs. {} when it should be {}",
+            inputs.len() - 1,
+            input_length - 1
+        )));
+    }
     Ok(())
 }
 

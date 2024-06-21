@@ -36,8 +36,6 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
         println!("{account}\n");
     }
 
-    //let inputs: HashMap<String, fn(String) -> Result<(), Box<dyn Error>>> = HashMap::from(["at","atd","aa","eta","etd","etl","rt","q"]);
-    //let inputs: HashSet<&str> = HashSet::from(["at", "atd", "aa", "eta", "etd", "etl", "rt", "q"]);
     print_menu();
 
     loop {
