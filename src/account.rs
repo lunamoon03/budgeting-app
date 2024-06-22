@@ -11,12 +11,19 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn new(name: &str) -> Account {
+    fn new(name: &str) -> Account {
         Account {
             name: String::from(name),
             balance: 0.0,
             transactions: HashMap::new(),
         }
+    }
+
+    pub fn build(name: &str) -> Result<Account, Box<dyn Error>> {
+        if name.trim_end_matches('\n').is_empty() {
+            return Err(Box::from("Account must have a name"));
+        }
+        Ok(Self::new(name))
     }
 
     pub fn name(&self) -> &str {
@@ -249,9 +256,16 @@ impl fmt::Display for TransactionCreationError {
 mod tests {
     use crate::account::Account;
     use chrono::{Local, NaiveDate};
+
+    #[test]
+    #[should_panic]
+    fn no_name() {
+        Account::build("\n").unwrap();
+    }
+
     #[test]
     fn balance_increasing() {
-        let mut a = Account::new("");
+        let mut a = Account::build("account").unwrap();
         let mut sum: f32 = 0.0;
         for i in 0..100 {
             a.add_new_transaction(&format!("{i}"), i as f32).unwrap();
@@ -262,7 +276,7 @@ mod tests {
 
     #[test]
     fn balance_decreasing() {
-        let mut a = Account::new("");
+        let mut a = Account::build("account").unwrap();
         a.add_new_transaction("x", 100.0).unwrap();
         assert_eq!(a.balance, 100.0);
         a.add_new_transaction("y", -50.0).unwrap();
@@ -272,13 +286,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn transaction_add_error() {
-        let mut a = Account::new("");
+        let mut a = Account::build("account").unwrap();
         a.add_new_transaction("", 15.0).unwrap();
     }
 
     #[test]
     fn account_printing() {
-        let mut a = Account::new("Savings");
+        let mut a = Account::build("Savings").unwrap();
         a.add_new_transaction("Transaction", 10.0).unwrap();
         assert_eq!(
             &format!("{}", a),

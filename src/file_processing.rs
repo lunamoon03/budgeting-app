@@ -76,7 +76,10 @@ pub(super) fn read_from_string(
 fn read_account(split: &[&str], mut iter: usize) -> Result<(Account, usize), Box<dyn Error>> {
     // unwrap safe as we know that iter is at most at very last spot at start of loop
 
-    let mut account = Account::new(split.get(iter).unwrap().trim_end_matches('{').trim());
+    let mut account = match Account::build(split.get(iter).unwrap().trim_end_matches('{').trim()) {
+        Ok(a) => a,
+        Err(e) => return Err(e),
+    };
 
     iter += 1; // transaction amount OR "}"
 
@@ -128,7 +131,6 @@ fn read_account(split: &[&str], mut iter: usize) -> Result<(Account, usize), Box
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::NaiveDate;
 
     #[test]
     fn empty_file() {
@@ -186,7 +188,7 @@ mod tests {
     }
 
     fn form_account() -> Account {
-        let mut a = Account::new("Savings");
+        let mut a = Account::build("Savings").unwrap();
         let day1: NaiveDate = "2024-05-25".parse().unwrap();
         let day2: NaiveDate = "2024-05-26".parse().unwrap();
         a.add_transaction("a", 1.0, day1).unwrap();
@@ -219,7 +221,7 @@ mod tests {
         let file_path = "src/test-files/write-read-test.csv";
 
         let account = form_account();
-        let map = HashMap::from([(String::from(account.name()), account)]);
+        let map = HashMap::from([(String::from(account.name().to_lowercase()), account)]);
 
         write_to_file(file_path, &map).unwrap();
 
@@ -229,5 +231,41 @@ mod tests {
         let account2 = binding.get("savings").unwrap();
 
         assert_eq!(&format!("{}", form_account()), &format!("{account2}"));
+    }
+
+    fn today() -> NaiveDate {
+        NaiveDate::from(chrono::Local::now().naive_local())
+    }
+
+    #[test]
+    fn large_write_read_test() {
+        let file_path = "src/test-files/large-write-read-test.csv";
+
+        let mut account = form_account();
+
+        let days = today().iter_days();
+
+        let mut num = 0;
+        for date in days {
+            account
+                .add_transaction(&format!("Transaction{}", num), num as f32, date)
+                .unwrap();
+            num += 1;
+            if num == 1000 {
+                break;
+            }
+        }
+
+        let map1 = HashMap::from([(String::from(account.name().to_lowercase()), account)]);
+        let account1 = map1.get("savings").unwrap();
+
+        write_to_file(file_path, &map1).unwrap();
+
+        let file_contents = get_file_contents(file_path).unwrap();
+
+        let map2 = read_from_string(file_contents).unwrap();
+        let account2 = map2.get("savings").unwrap();
+
+        assert_eq!(&format!("{account1}"), &format!("{account2}"));
     }
 }
