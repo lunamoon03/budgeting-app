@@ -1,5 +1,7 @@
+use crate::account::Account;
 use input_processing::*;
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::error::Error;
 use std::io;
 
@@ -7,38 +9,54 @@ mod account;
 mod file_processing;
 mod input_processing;
 
-fn print_menu() {
+fn display_accounts(accounts: &HashMap<String, Account>) {
+    println!("---------------------------------------------------------------------------------------------------------");
+    for account in accounts
+        .values()
+        .sorted_by(|a, b| Ord::cmp(a.name(), b.name()))
+    {
+        println!("\t{account}\n");
+    }
+    println!("---------------------------------------------------------------------------------------------------------");
+}
+
+fn display_menu() {
     println!("\n\
-        ----------------------------------------------------------------------------------------------------\n\
-        \tat  [account] [label] [amount] - add transaction from today to account\n\
-        \tatd [account] [label] [amount] [date (YYYY-MM-DD)] - add transaction from another day to account\n\
+  ---------------------------------------------------------------------------------------------------------\n\
         \taa  [account] - add new account\n\
         \tra  [account] - remove an account\n\
+        \tat  [account] [label] [amount] - add transaction from today to account\n\
+        \tatd [account] [label] [amount] [date (YYYY-MM-DD)] - add transaction from another day to account\n\
         \teta [account] [label] [amount] [date (YYYY-MM-DD)] [new amount] - edit amount of transaction\n\
         \tetd [account] [label] [amount] [date (YYYY-MM-DD)] [new date] - edit date of transaction\n\
         \tetl [account] [label] [amount] [date (YYYY-MM-DD)] [new label] - edit label of transaction\n\
         \trt  [account] [label] [amount] [date (YYYY-MM-DD)] - remove a transaction\n\
-        \th   - show menu\n\
         \ts   - save changes\n\
         \tu   - undo all changes since last save\n\
         \tq   - exit program\n\
-        ----------------------------------------------------------------------------------------------------\n");
+  ---------------------------------------------------------------------------------------------------------\n");
 }
 
 pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
     let mut accounts =
         file_processing::read_from_string(file_processing::get_file_contents(file_path)?)?;
 
-    for account in accounts
-        .values()
-        .sorted_by(|a, b| Ord::cmp(a.name(), b.name()))
-    {
-        println!("{account}\n");
-    }
-
-    print_menu();
+    let mut message_buffer: String = String::new();
 
     loop {
+        clearscreen::clear().expect("Failed to clear screen");
+
+        display_menu();
+        if !accounts.is_empty() {
+            display_accounts(&accounts);
+        }
+        if !message_buffer.is_empty() {
+            println!("{message_buffer}\n");
+        } else {
+            println!();
+        }
+        message_buffer = String::new();
+
         let mut trimmed_input: String;
         loop {
             let mut user_input = String::new();
@@ -65,7 +83,6 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
             "etd" => result = edit_transaction_date(split_input, &mut accounts),
             "etl" => result = edit_transaction_label(split_input, &mut accounts),
             "rt" => result = remove_transaction(split_input, &mut accounts),
-            "h" => print_menu(),
             "s" => result = file_processing::write_to_file(file_path, &accounts),
             "u" => {
                 accounts = file_processing::read_from_string(file_processing::get_file_contents(
@@ -73,19 +90,11 @@ pub fn run(file_path: &str) -> Result<(), Box<dyn Error>> {
                 )?)?
             }
             "q" => break,
-            _ => println!("Please enter a valid input"),
+            _ => message_buffer += "\nPlease enter a valid input",
         }
 
-        if let Err(e) = result {
-            println!("Error: {}", e)
-        } else {
-            println!();
-            for account in accounts
-                .values()
-                .sorted_by(|a, b| Ord::cmp(a.name(), b.name()))
-            {
-                println!("{account}\n");
-            }
+        if let Err(ref e) = result {
+            message_buffer += &format!("\nError: {e}");
         }
     }
 

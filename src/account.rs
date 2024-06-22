@@ -30,7 +30,7 @@ impl Account {
         &self.name
     }
 
-    pub fn balance(&self) -> &f32 {
+    pub fn _balance(&self) -> &f32 {
         &self.balance
     }
 
@@ -38,12 +38,10 @@ impl Account {
         &self.transactions
     }
 
-    pub fn add_new_transaction(
-        &mut self,
-        label: &str,
-        amount: f32,
-    ) -> Result<(), TransactionCreationError> {
+    pub fn add_new_transaction(&mut self, label: &str, amount: f32) -> Result<(), Box<dyn Error>> {
         let today = NaiveDate::from(Local::now().naive_local());
+        self.check_transaction_not_exists(&format!("{}-{}-{}", today, label, amount))?;
+
         self.balance += amount;
         self.transactions.insert(
             format!("{}-{}-{}", today, label, amount),
@@ -57,7 +55,9 @@ impl Account {
         label: &str,
         amount: f32,
         date: NaiveDate,
-    ) -> Result<(), TransactionCreationError> {
+    ) -> Result<(), Box<dyn Error>> {
+        self.check_transaction_not_exists(&format!("{}-{}-{}", date, label, amount))?;
+
         self.balance += amount;
         self.transactions.insert(
             format!("{}-{}-{}", date, label, amount),
@@ -138,8 +138,8 @@ impl Account {
     fn check_transaction_exists(&mut self, key: &str) -> Result<(), Box<dyn Error>> {
         if !self.transactions.contains_key(key) {
             return Err(Box::from(format!(
-                "Transaction {} is not present in the account",
-                key
+                "Transaction {} is not present in {}",
+                key, self.name
             )));
         }
         Ok(())
@@ -148,8 +148,8 @@ impl Account {
     fn check_transaction_not_exists(&mut self, key: &str) -> Result<(), Box<dyn Error>> {
         if self.transactions.contains_key(key) {
             return Err(Box::from(format!(
-                "Transaction {} is already present in the account",
-                key
+                "Transaction {} is already present in {}",
+                key, self.name
             )));
         }
         Ok(())
@@ -179,15 +179,9 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    fn new(
-        label: &str,
-        amount: f32,
-        now: NaiveDate,
-    ) -> Result<Transaction, TransactionCreationError> {
+    fn new(label: &str, amount: f32, now: NaiveDate) -> Result<Transaction, Box<dyn Error>> {
         if label.is_empty() {
-            return Err(TransactionCreationError::new(
-                "No name provided for transaction",
-            ));
+            return Err("No name provided for transaction".into());
         }
         Ok(Transaction {
             label: String::from(label),
@@ -228,27 +222,6 @@ impl fmt::Display for Transaction {
             self.label,
             self.amount
         )
-    }
-}
-
-#[derive(Debug)]
-pub struct TransactionCreationError {
-    reason: String,
-}
-
-impl TransactionCreationError {
-    pub fn new(reason: &str) -> TransactionCreationError {
-        TransactionCreationError {
-            reason: String::from(reason),
-        }
-    }
-}
-
-impl Error for TransactionCreationError {}
-
-impl fmt::Display for TransactionCreationError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.reason)
     }
 }
 

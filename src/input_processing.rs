@@ -215,7 +215,7 @@ pub(super) fn remove_transaction(
     Ok(())
 }
 
-fn check_input_length(inputs: &Vec<String>, input_length: usize) -> Result<(), Box<dyn Error>> {
+fn check_input_length(inputs: &[String], input_length: usize) -> Result<(), Box<dyn Error>> {
     if inputs.len() != input_length {
         return Err(Box::from(format!(
             "Wrong number of inputs. {} when it should be {}",
@@ -284,7 +284,7 @@ mod tests {
         let account = form_account();
 
         assert_eq!(account.transactions().len(), 0);
-        assert_eq!(account.balance(), &0f32);
+        assert_eq!(account._balance(), &0f32);
 
         let mut account_map = HashMap::new();
         account_map.insert(account.name().to_lowercase(), account);
@@ -312,7 +312,7 @@ mod tests {
             )
         );
 
-        assert_eq!(account_map.get("savings").unwrap().balance(), &-10f32);
+        assert_eq!(account_map.get("savings").unwrap()._balance(), &-10f32);
 
         let inputs = vec![
             String::from("at"),
@@ -324,7 +324,7 @@ mod tests {
         add_new_transaction(inputs, &mut account_map).unwrap();
 
         assert_eq!(account_map.get("savings").unwrap().transactions().len(), 2);
-        assert_eq!(account_map.get("savings").unwrap().balance(), &20f32);
+        assert_eq!(account_map.get("savings").unwrap()._balance(), &20f32);
 
         assert_eq!(
             &format!("{}", account_map.get("savings").unwrap()),
@@ -379,7 +379,7 @@ mod tests {
         let account = form_account();
 
         assert_eq!(account.transactions().len(), 0);
-        assert_eq!(account.balance(), &0f32);
+        assert_eq!(account._balance(), &0f32);
 
         let mut account_map = HashMap::new();
         account_map.insert(account.name().to_lowercase(), account);
@@ -408,7 +408,7 @@ mod tests {
             )
         );
 
-        assert_eq!(account_map.get("savings").unwrap().balance(), &-10f32);
+        assert_eq!(account_map.get("savings").unwrap()._balance(), &-10f32);
     }
 
     #[test]
@@ -419,7 +419,7 @@ mod tests {
         add_account(inputs, &mut account_map).unwrap();
 
         assert_eq!(account_map.len(), 1);
-        assert_eq!(account_map.get("savings").unwrap().balance(), &0f32);
+        assert_eq!(account_map.get("savings").unwrap()._balance(), &0f32);
         assert_eq!(account_map.get("savings").unwrap().transactions().len(), 0);
 
         assert_eq!(
@@ -799,7 +799,7 @@ mod tests {
 
         remove_transaction(inputs, &mut account_map).unwrap();
         assert_eq!(account_map.get("savings").unwrap().transactions().len(), 0);
-        assert_eq!(account_map.get("savings").unwrap().balance(), &0f32);
+        assert_eq!(account_map.get("savings").unwrap()._balance(), &0f32);
     }
 
     #[test]
