@@ -111,11 +111,7 @@ fn read_account(split: &[&str], mut iter: usize) -> Result<(Account, usize), Box
 
         iter += 1; // next token (should be "}")
 
-        if let Err(e) =
-            account.add_transaction(transaction_name, transaction_amount, transaction_date)
-        {
-            return Err(Box::from(e));
-        }
+        account.add_transaction(transaction_name, transaction_amount, transaction_date)?
     }
     if iter >= split.len() {
         return Err(Box::from("Malformed file - Wrong number of entries"));
@@ -221,7 +217,7 @@ mod tests {
         let file_path = "src/test-files/write-read-test.csv";
 
         let account = form_account();
-        let map = HashMap::from([(String::from(account.name().to_lowercase()), account)]);
+        let map = HashMap::from([(account.name().to_lowercase(), account)]);
 
         write_to_file(file_path, &map).unwrap();
 
@@ -256,7 +252,7 @@ mod tests {
             }
         }
 
-        let map1 = HashMap::from([(String::from(account.name().to_lowercase()), account)]);
+        let map1 = HashMap::from([(account.name().to_lowercase(), account)]);
         let account1 = map1.get("savings").unwrap();
 
         write_to_file(file_path, &map1).unwrap();
