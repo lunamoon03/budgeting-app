@@ -2,7 +2,7 @@
 name = "budgeting-app"
 version = "1.0.0"
 edition = "2021"
-authors = ["Luna Wilkes <luna.wilkes@gmail.com>"]
+authors = ["Luna <neovx.23@proton.me>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
