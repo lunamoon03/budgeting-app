@@ -1,2 +1,4 @@
 /target
 .idea/*
+# It gets updated too often to be included in future commits
+src/test-files/large-write-read-test
