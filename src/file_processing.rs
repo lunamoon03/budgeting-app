@@ -229,17 +229,13 @@ mod tests {
         assert_eq!(&format!("{}", form_account()), &format!("{account2}"));
     }
 
-    fn today() -> NaiveDate {
-        NaiveDate::from(chrono::Local::now().naive_local())
-    }
-
     #[test]
     fn large_write_read_test() {
         let file_path = "src/test-files/large-write-read-test.csv";
 
         let mut account = form_account();
 
-        let days = today().iter_days();
+        let days = NaiveDate::from_ymd_opt(2024, 10, 25).unwrap().iter_days();
 
         let mut num = 0;
         for date in days {
